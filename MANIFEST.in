@@ -1,2 +1,4 @@
 include *.cpp
-include colbert/modeling/segmented_maxsim.cpp
+include colbert/modeling/*.cpp
+include colbert/*.cpp
+graft colbert
