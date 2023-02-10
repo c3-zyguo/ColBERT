@@ -1,1 +1,1 @@
-include *.cpp
+include colbert/modeling/*.cpp
