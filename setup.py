@@ -13,5 +13,6 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url='https://github.com/c3-zyguo/ColBERT',
     packages=setuptools.find_packages(),
+    include_package_data=True,
     python_requires='>=3.6',
 )
