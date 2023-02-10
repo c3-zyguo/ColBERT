@@ -1,2 +1,1 @@
 include colbert/*.cpp
-graft colbert
