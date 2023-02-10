@@ -1,1 +1,2 @@
-include colbert/*.cpp
+# include cpp files under colbert directory
+graft colbert
