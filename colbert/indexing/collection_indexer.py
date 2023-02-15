@@ -32,6 +32,9 @@ def encode(config, collection, shared_lists, shared_queues):
     encoder = CollectionIndexer(config=config, collection=collection)
     encoder.run(shared_lists)
 
+def encodeSync(config, collection, lists):
+    encoder = CollectionIndexer(config=config, collection=collection)
+    encoder.runSync(lists)
 
 class CollectionIndexer():
     '''
@@ -56,6 +59,21 @@ class CollectionIndexer():
         self.saver = IndexSaver(config)
 
         print_memory_stats(f'RANK:{self.rank}')
+        
+    def runSync(self, lists):
+        with torch.inference_mode():
+            self.setup() # Computes and saves plan for whole collection
+            print_memory_stats(f'RANK:{self.rank}')
+
+            if not self.config.resume or not self.saver.try_load_codec():
+                self.train(lists) # Trains centroids from selected passages
+            print_memory_stats(f'RANK:{self.rank}')
+
+            self.index() # Encodes and saves all tokens into residuals
+            print_memory_stats(f'RANK:{self.rank}')
+
+            self.finalize() # Builds metadata and centroid to passage mapping
+            print_memory_stats(f'RANK:{self.rank}')   
 
     def run(self, shared_lists):
         with torch.inference_mode():

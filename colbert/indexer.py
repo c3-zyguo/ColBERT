@@ -9,7 +9,7 @@ from colbert.infra.launcher import Launcher
 
 from colbert.utils.utils import create_directory, print_message
 
-from colbert.indexing.collection_indexer import encode
+from colbert.indexing.collection_indexer import encode, encodeSync
 
 
 class Indexer:
@@ -76,10 +76,5 @@ class Indexer:
         return self.index_path
 
     def __launch(self, collection):
-        manager = mp.Manager()
-        shared_lists = [manager.list() for _ in range(self.config.nranks)]
-        shared_queues = [manager.Queue(maxsize=1) for _ in range(self.config.nranks)]
-
-        # Encodes collection into index using the CollectionIndexer class
-        launcher = Launcher(encode)
-        launcher.launch(self.config, collection, shared_lists, shared_queues)
+        lists = [[] for _ in range(self.config.nranks)]
+        encodeSync(self.config, collection, lists)
