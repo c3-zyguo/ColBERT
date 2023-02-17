@@ -35,6 +35,15 @@ def encode(config, collection, shared_lists, shared_queues):
 def encodeSync(config, collection, lists):
     encoder = CollectionIndexer(config=config, collection=collection)
     encoder.runSync(lists)
+    # In the encode() multiprocessing code path, multiple children processes will be spawn to encode the collection.
+    # Within each process, multiple threads are run as well (i.e., `with self.saver.thread()` in CollectionIndexer#index).
+    # Here we try to define a new code path to bypass the multiprocessing. However, the original code is designed 
+    # in a way that even this new code path, inevitably we will run multiple threads, but in one single parent process. 
+    # This will make torch.get_num_threads() > 1. However, later when we initialize the Searcher object, 
+    # we call `HF_ColBERT.from_pretrained()`, which in turn calls the `from_pretrained()` method from
+    # the transformers library, which eventually calls [torch/nn/modules/module.py:1507] `param.copy_(input_param)`.
+    # The copy function does not work well with parallelism, and that's why we need to set the threads to 1.
+    torch.set_num_threads(1)
 
 class CollectionIndexer():
     '''
