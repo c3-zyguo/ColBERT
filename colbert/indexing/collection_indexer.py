@@ -367,31 +367,25 @@ class CollectionIndexer():
             {CHUNK#}.residuals.pt:  16-bits residual for each embedding in chunk
             doclens.{CHUNK#}.pt:    number of embeddings within each passage in chunk
         '''
-#         with self.saver.thread():
-        self.saver.codec = self.saver.load_codec()
-        
-        batches = self.collection.enumerate_batches(rank=self.rank)
-        for chunk_idx, offset, passages in tqdm.tqdm(batches, disable=self.rank > 0):
-            if self.config.resume and self.saver.check_chunk_exists(chunk_idx):
-                Run().print_main(f"#> Found chunk {chunk_idx} in the index already, skipping encoding...")
-                continue
-            # Encode passages into embeddings with the checkpoint model
-            embs, doclens = self.encoder.encode_passages(passages) 
-            if self.use_gpu:
-                assert embs.dtype == torch.float16
-            else:
-                assert embs.dtype == torch.float32
-                embs = embs.half()
+        with self.saver.thread():
+            batches = self.collection.enumerate_batches(rank=self.rank)
+            for chunk_idx, offset, passages in tqdm.tqdm(batches, disable=self.rank > 0):
+                if self.config.resume and self.saver.check_chunk_exists(chunk_idx):
+                    Run().print_main(f"#> Found chunk {chunk_idx} in the index already, skipping encoding...")
+                    continue
+                # Encode passages into embeddings with the checkpoint model
+                embs, doclens = self.encoder.encode_passages(passages) 
+                if self.use_gpu:
+                    assert embs.dtype == torch.float16
+                else:
+                    assert embs.dtype == torch.float32
+                    embs = embs.half()
 
-            Run().print_main(f"#> Saving chunk {chunk_idx}: \t {len(passages):,} passages "
-                             f"and {embs.size(0):,} embeddings. From #{offset:,} onward.")
+                Run().print_main(f"#> Saving chunk {chunk_idx}: \t {len(passages):,} passages "
+                                 f"and {embs.size(0):,} embeddings. From #{offset:,} onward.")
 
-#             self.saver.save_chunk(chunk_idx, offset, embs, doclens) # offset = first passage index in chunk
-            
-            compressed_embs = self.saver.codec.compress(embs)
-            self.saver._write_chunk_to_disk(chunk_idx, offset, compressed_embs, doclens)
-            
-            del embs, doclens, compressed_embs
+                self.saver.save_chunk(chunk_idx, offset, embs, doclens) # offset = first passage index in chunk
+                del embs, doclens
 
     def finalize(self):
         '''
